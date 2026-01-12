@@ -35,7 +35,7 @@ Un reproductor de música elegante y moderno construido con Electron, React y Ta
 - Diferentes cantidades de barras según el modo (12 en compacto, 20 en normal)
 - Gradientes de color según el tema seleccionado
 
-## 🚀 Instalación
+##  Instalación
 
 ### Prerrequisitos
 - Node.js (v14 o superior)
@@ -147,13 +147,4 @@ Este proyecto está bajo la Licencia MIT.
 
 ## 👨‍💻 Autor
 
-**Zuo**
-
-## 🙏 Agradecimientos
-
-- Diseño de temas inspirado en interfaces modernas
-- Tema "Morado Noche" dedicado a Meli
-
----
-
-⭐ Si te gusta este proyecto, ¡dale una estrella en GitHub!
+**Orvin Reid**
