@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libreria de Zuo</title>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin
+        src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            user-select: none;
+            /* Disable text selection */
+            -webkit-user-select: none;
+        }
+
+        .progress-bar {
+            -webkit-appearance: none;
+            background: #292524;
+            /* stone-800 */
+            background-image: linear-gradient(#d97706, #d97706);
+            /* amber-600 */
+            background-repeat: no-repeat;
+            background-size: 0% 100%;
+        }
+
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #fbbf24;
+            /* amber-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #78350f;
+            /* amber-900 */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .volume-bar {
+            -webkit-appearance: none;
+            background: #292524;
+            background-image: linear-gradient(#d97706, #d97706);
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+        }
+
+        .volume-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #fbbf24;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #78350f;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Purple Theme Styles */
+        .progress-bar-purple {
+            -webkit-appearance: none;
+            background: #000000;
+            background-image: linear-gradient(#9333ea, #9333ea);
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+        }
+
+        .progress-bar-purple::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #c084fc;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #581c87;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .volume-bar-purple {
+            -webkit-appearance: none;
+            background: #000000;
+            background-image: linear-gradient(#9333ea, #9333ea);
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+        }
+
+        .volume-bar-purple::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #c084fc;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #581c87;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1c1917;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #78350f;
+            border-radius: 5px;
+            border: 2px solid #1c1917;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #92400e;
+        }
+
+        /* Purple Theme Scrollbar */
+        .theme-purple ::-webkit-scrollbar-track {
+            background: #000000;
+        }
+
+        .theme-purple ::-webkit-scrollbar-thumb {
+            background: #581c87;
+            border-radius: 5px;
+            border: 2px solid #000000;
+        }
+
+        .theme-purple ::-webkit-scrollbar-thumb:hover {
+            background: #6b21a8;
+        }
+
+        /* Utility for 3D Dice Background */
+        .dice-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        // Wrapper para usar iconos de Lucide (core) en React
+        const LucideIcon = ({ name, size = 24, color = "currentColor", ...props }) => {
+            if (!lucide || !lucide.icons) return null;
+
+            const iconData = lucide.icons[name];
+            if (!iconData) return null;
+
+            // Helper to render children safely
+            const renderChildren = (children) => {
+                if (!Array.isArray(children)) return null;
+                return children.map((child, i) => {
+                    // Array format: ["tag", { attrs }]
+                    if (Array.isArray(child)) {
+                        const [ChildTag, childAttrs] = child;
+                        return <ChildTag key={i} {...childAttrs} />;
+                    }
+                    // Object format: { tag: "tag", attrs: { ... } }
+                    if (typeof child === 'object' && child !== null) {
+                        const ChildTag = child.tag || 'path'; // Fallback
+                        return <ChildTag key={i} {...child.attrs} />;
+                    }
+                    return null;
+                });
+            };
+
+            // 1. Array format (Legacy): ["svg", { attrs }, [ children ]]
+            if (Array.isArray(iconData)) {
+                const [tag, attrs, children] = iconData;
+                return (
+                    <svg
+                        {...attrs}
+                        width={size}
+                        height={size}
+                        stroke={color}
+                        fill="none"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        {...props}
+                    >
+                        {renderChildren(children)}
+                    </svg>
+                );
+            }
+
+            // 2. Object format (Modern): { tag: "svg", attrs: { ... }, children: [ ... ] }
+            if (typeof iconData === 'object') {
+                // Check if it has children prop
+                const children = iconData.children || iconData;
+                // Note: some versions might just be the children array if not fully shaped, but usually it's an object.
+                // Let's assume standard object structure for safety or fallback.
+
+                // If iconData is just the list of children (unlikely but possible in some builds):
+                if (Array.isArray(iconData)) {
+                    // Should have been caught above, but just in case
+                    return (
+                        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                            {renderChildren(iconData)}
+                        </svg>
+                    );
+                }
+
+                return (
+                    <svg
+                        {...iconData.attrs}
+                        width={size}
+                        height={size}
+                        stroke={color}
+                        fill="none"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        {...props}
+                    >
+                        {renderChildren(iconData.children)}
+                    </svg>
+                );
+            }
+
+            return null;
+        };
+
+        const { ipcRenderer } = window.require('electron');
+
+        // ... LucideIcon component ...
+
+        // Custom TitleBar Component
+        const TitleBar = () => {
+            const minimize = () => ipcRenderer.send('minimize-window');
+            const maximize = () => ipcRenderer.send('maximize-window');
+            const close = () => ipcRenderer.send('close-window');
+
+            return (
+                <div className="h-8 bg-stone-900 flex justify-between items-center select-none border-b border-amber-900" style={{ WebkitAppRegion: 'drag' }}>
+                    <div className="px-4 flex items-center gap-2">
+                        <div className="w-4 h-4 text-amber-500">
+                            <LucideIcon name="Music" size={16} />
+                        </div>
+                        <span className="text-xs text-amber-500 font-bold tracking-wider" style={{ fontFamily: 'serif' }}>LIBRERIA DE ZUO</span>
+                    </div>
+                    <div className="flex bg-stone-900" style={{ WebkitAppRegion: 'no-drag' }}>
+                        <button onClick={minimize} className="h-8 w-12 flex items-center justify-center hover:bg-stone-800 transition">
+                            <img src="./Public/minimizar.png" alt="Minimizar" className="w-4 h-4" />
+                        </button>
+                        <button onClick={maximize} className="h-8 w-12 flex items-center justify-center hover:bg-stone-800 transition">
+                            <img src="./Public/ampliar.png" alt="Maximizar" className="w-3 h-3" />
+                        </button>
+                        <button onClick={close} className="h-8 w-12 flex items-center justify-center hover:bg-red-900 transition">
+                            <img src="./Public/cerrar.png" alt="Cerrar" className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const iconNames = ['Play', 'Pause', 'SkipBack', 'SkipForward', 'Volume2', 'VolumeX', 'Folder', 'Search', 'Music', 'Clock', 'FileAudio', 'Minus', 'Square', 'X', 'Repeat'];
+        const Icons = iconNames.reduce((acc, name) => {
+            acc[name] = (props) => <LucideIcon name={name} {...props} />;
+            return acc;
+        }, {});
+
+        const { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Folder, Search, Music, Clock, FileAudio, Minus, Square, X, Repeat } = Icons;
+
+        // 3D Animated Dice Background Component
+        const DiceBackground = () => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+
+                // Resize canvas
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resize);
+                resize();
+
+                // Dice properties
+                const diceCount = 15;
+                const dice = [];
+                for (let i = 0; i < diceCount; i++) {
+                    dice.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        z: Math.random() * 2 + 1, // Depth/Scale
+                        dx: (Math.random() - 0.5) * 0.5,
+                        dy: (Math.random() - 0.5) * 0.5,
+                        rotation: Math.random() * Math.PI * 2,
+                        dr: (Math.random() - 0.5) * 0.02,
+                        size: Math.random() * 20 + 20
+                    });
+                }
+
+                // Draw 3D Cube (Wireframe)
+                const drawCube = (ctx, x, y, size, rotation, opacity) => {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(rotation);
+                    ctx.strokeStyle = `rgba(180, 83, 9, ${opacity})`; // Amber-700ish
+                    ctx.lineWidth = 1.5;
+
+                    // Simple Isometric-ish projection drawing of a cube
+                    const s = size;
+                    // Front face
+                    ctx.strokeRect(-s / 2, -s / 2, s, s);
+                    // Back face (offset)
+                    const off = s * 0.4;
+                    ctx.strokeRect(-s / 2 + off, -s / 2 - off, s, s);
+                    // Connecting lines
+                    ctx.beginPath();
+                    ctx.moveTo(-s / 2, -s / 2); ctx.lineTo(-s / 2 + off, -s / 2 - off);
+                    ctx.moveTo(s / 2, -s / 2); ctx.lineTo(s / 2 + off, -s / 2 - off);
+                    ctx.moveTo(s / 2, s / 2); ctx.lineTo(s / 2 + off, s / 2 - off);
+                    ctx.moveTo(-s / 2, s / 2); ctx.lineTo(-s / 2 + off, s / 2 - off);
+                    ctx.stroke();
+
+                    ctx.restore();
+                };
+
+                const animate = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    dice.forEach(d => {
+                        d.x += d.dx;
+                        d.y += d.dy;
+                        d.rotation += d.dr;
+
+                        // Wrap around screen
+                        if (d.x > canvas.width + 50) d.x = -50;
+                        if (d.x < -50) d.x = canvas.width + 50;
+                        if (d.y > canvas.height + 50) d.y = -50;
+                        if (d.y < -50) d.y = canvas.height + 50;
+
+                        drawCube(ctx, d.x, d.y, d.size * d.z, d.rotation, 0.15); // Low opacity
+                    });
+
+                    animationFrameId = requestAnimationFrame(animate);
+                };
+
+                animate();
+
+                return () => {
+                    window.removeEventListener('resize', resize);
+                    cancelAnimationFrame(animationFrameId);
+                };
+            }, []);
+
+            return <canvas ref={canvasRef} className="dice-bg" />;
+        };
+
+        // Theme Selector Component
+        const ThemeSelector = ({ onSelectTheme }) => {
+            return (
+                <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+                    <div className="text-center">
+                        <h1 className="text-4xl font-bold text-white mb-4" style={{ fontFamily: 'serif' }}>⚔ LIBRERIA DE ZUO ⚔</h1>
+                        <p className="text-gray-400 mb-12">Selecciona tu tema</p>
+                        <div className="flex gap-8">
+                            {/* Amber Theme Button */}
+                            <button
+                                onClick={() => onSelectTheme('amber')}
+                                className="group relative w-64 h-80 rounded-2xl overflow-hidden border-4 border-transparent hover:border-amber-500 transition-all duration-300 transform hover:scale-105"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-amber-700 to-amber-500 opacity-90"></div>
+                                <div className="relative h-full flex flex-col items-center justify-center p-6">
+                                    <div className="w-20 h-20 rounded-full bg-amber-500 mb-6 shadow-2xl shadow-amber-500/50"></div>
+                                    <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'serif' }}>Amber Gold</h2>
+                                    <p className="text-amber-100 text-sm">Cálido y clásico</p>
+                                    <div className="mt-6 flex gap-2">
+                                        <div className="w-8 h-8 rounded bg-amber-400"></div>
+                                        <div className="w-8 h-8 rounded bg-amber-600"></div>
+                                        <div className="w-8 h-8 rounded bg-amber-800"></div>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Purple Theme Button */}
+                            <button
+                                onClick={() => onSelectTheme('purple')}
+                                className="group relative w-64 h-80 rounded-2xl overflow-hidden border-4 border-transparent hover:border-purple-500 transition-all duration-300 transform hover:scale-105"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-purple-700 to-purple-500 opacity-90"></div>
+                                <div className="relative h-full flex flex-col items-center justify-center p-6">
+                                    <div className="w-20 h-20 rounded-full bg-purple-500 mb-6 shadow-2xl shadow-purple-500/50"></div>
+                                    <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'serif' }}>Morado Noche</h2>
+                                    <p className="text-purple-100 text-sm">Para meli</p>
+                                    <div className="mt-6 flex gap-2">
+                                        <div className="w-8 h-8 rounded bg-purple-400"></div>
+                                        <div className="w-8 h-8 rounded bg-purple-600"></div>
+                                        <div className="w-8 h-8 rounded bg-purple-800"></div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        function DnDMusicManager() {
+            const [playlist, setPlaylist] = useState([]);
+            const [filteredPlaylist, setFilteredPlaylist] = useState([]);
+            const [currentTrackIndex, setCurrentTrackIndex] = useState(null);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [duration, setDuration] = useState(0);
+            const [volume, setVolume] = useState(1);
+            const [isMuted, setIsMuted] = useState(false);
+            const [isRepeat, setIsRepeat] = useState(false);
+            const [isCompact, setIsCompact] = useState(false);
+            const [visualizerBars, setVisualizerBars] = useState(Array(20).fill(5));
+            const [audioContextReady, setAudioContextReady] = useState(false);
+            const [selectedTheme, setSelectedTheme] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [folderPath, setFolderPath] = useState('');
+            const audioRef = useRef(null);
+            const folderInputRef = useRef(null);
+            const canvasRef = useRef(null);
+            const animationRef = useRef(null);
+            const analyserRef = useRef(null);
+            const audioContextRef = useRef(null);
+
+            const minimize = () => ipcRenderer.send('minimize-window');
+            const maximize = () => ipcRenderer.send('maximize-window');
+            const close = () => ipcRenderer.send('close-window');
+
+            useEffect(() => {
+                const audio = audioRef.current;
+                if (!audio) return;
+
+                const updateTime = () => setCurrentTime(audio.currentTime);
+                const updateDuration = () => setDuration(audio.duration);
+                // Handle End of Track (Repeat logic)
+                const handleEnded = () => {
+                    if (isRepeat) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    } else {
+                        handleNext();
+                    }
+                };
+
+                audio.addEventListener('timeupdate', updateTime);
+                audio.addEventListener('loadedmetadata', updateDuration);
+                audio.addEventListener('ended', handleEnded);
+
+                return () => {
+                    audio.removeEventListener('timeupdate', updateTime);
+                    audio.removeEventListener('loadedmetadata', updateDuration);
+                    audio.removeEventListener('ended', handleEnded);
+                };
+            }, [currentTrackIndex, isRepeat]); // Added isRepeat dependency
+
+            useEffect(() => {
+                if (isPlaying && analyserRef.current) {
+                    drawVisualizer();
+                } else {
+                    if (animationRef.current) {
+                        cancelAnimationFrame(animationRef.current);
+                    }
+                }
+                return () => {
+                    if (animationRef.current) {
+                        cancelAnimationFrame(animationRef.current);
+                    }
+                };
+            }, [isPlaying]);
+
+            // Audio-Reactive Visualizer (Used in Both Modes)
+            useEffect(() => {
+                console.log('Visualizer effect running - isPlaying:', isPlaying, 'analyserRef:', !!analyserRef.current, 'isCompact:', isCompact);
+
+                if (!isPlaying || !analyserRef.current) {
+                    setVisualizerBars(Array(isCompact ? 12 : 20).fill(5));
+                    return;
+                }
+
+                const analyser = analyserRef.current;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                let animationId;
+
+                const barCount = isCompact ? 12 : 20;
+                console.log('Starting visualizer animation with', barCount, 'bars');
+
+                const updateBars = () => {
+                    analyser.getByteFrequencyData(dataArray);
+
+                    // Sample frequency bands across the spectrum
+                    const bars = [];
+                    const step = Math.floor(bufferLength / barCount);
+                    for (let i = 0; i < barCount; i++) {
+                        const index = i * step;
+                        const value = dataArray[index] || 0;
+                        // Map 0-255 to 5-100 (percentage height)
+                        bars.push(Math.max(5, (value / 255) * 100));
+                    }
+
+                    setVisualizerBars(bars);
+                    animationId = requestAnimationFrame(updateBars);
+                };
+
+                updateBars();
+
+                return () => {
+                    if (animationId) cancelAnimationFrame(animationId);
+                    console.log('Visualizer animation stopped');
+                };
+            }, [isCompact, isPlaying, audioContextReady]);
+
+            // Reset bars when mode changes
+            useEffect(() => {
+                setVisualizerBars(Array(isCompact ? 12 : 20).fill(5));
+            }, [isCompact]);
+
+            useEffect(() => {
+                const term = searchTerm.toLowerCase();
+                const filtered = playlist.filter(track =>
+                    track.name.toLowerCase().includes(term) ||
+                    track.artist.toLowerCase().includes(term) ||
+                    track.album.toLowerCase().includes(term) ||
+                    formatTime(track.duration).includes(term) || // Filter by duration
+                    track.size.toLowerCase().includes(term)      // Filter by size
+                );
+                setFilteredPlaylist(filtered);
+            }, [searchTerm, playlist]);
+
+            const drawVisualizer = () => {
+                const canvas = canvasRef.current;
+                if (!canvas || !analyserRef.current) return;
+
+                const ctx = canvas.getContext('2d');
+                const bufferLength = analyserRef.current.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                const draw = () => {
+                    animationRef.current = requestAnimationFrame(draw);
+                    analyserRef.current.getByteFrequencyData(dataArray);
+
+                    ctx.fillStyle = '#1a1410';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const barWidth = (canvas.width / bufferLength) * 2;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+
+                        const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+                        gradient.addColorStop(0, '#8B4513');
+                        gradient.addColorStop(0.5, '#D4AF37');
+                        gradient.addColorStop(1, '#FFD700');
+
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+
+                        x += barWidth;
+                    }
+                };
+
+                draw();
+            };
+
+            const parseAudioMetadata = async (file) => {
+                return new Promise((resolve) => {
+                    const audio = new Audio();
+                    audio.src = URL.createObjectURL(file);
+
+                    audio.addEventListener('loadedmetadata', () => {
+                        const duration = audio.duration;
+                        URL.revokeObjectURL(audio.src);
+
+                        let fileName = file.name.replace('.mp3', '');
+                        let artist = 'Artista Desconocido';
+                        let title = fileName;
+                        let album = 'Álbum Desconocido';
+
+                        if (fileName.includes(' - ')) {
+                            const parts = fileName.split(' - ');
+                            artist = parts[0].trim();
+                            title = parts.slice(1).join(' - ').trim();
+                        }
+
+                        resolve({
+                            artist,
+                            title,
+                            album,
+                            duration
+                        });
+                    });
+
+                    audio.addEventListener('error', () => {
+                        resolve({
+                            artist: 'Artista Desconocido',
+                            title: file.name.replace('.mp3', ''),
+                            album: 'Álbum Desconocido',
+                            duration: 0
+                        });
+                    });
+                });
+            };
+
+            const handleFolderSelect = async (e) => {
+                const files = Array.from(e.target.files);
+                const audioFiles = files.filter(file =>
+                    file.type === 'audio/mpeg' || file.type === 'audio/mp3' || file.name.endsWith('.mp3')
+                );
+
+                if (audioFiles.length > 0 && audioFiles[0].webkitRelativePath) {
+                    const path = audioFiles[0].webkitRelativePath.split('/')[0];
+                    setFolderPath(path);
+                }
+
+                const tracksPromises = audioFiles.map(async (file) => {
+                    const metadata = await parseAudioMetadata(file);
+                    return {
+                        id: Date.now() + Math.random(),
+                        name: metadata.title,
+                        artist: metadata.artist,
+                        album: metadata.album,
+                        duration: metadata.duration,
+                        size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                        url: URL.createObjectURL(file),
+                        file: file
+                    };
+                });
+
+                const newTracks = await Promise.all(tracksPromises);
+                setPlaylist(newTracks);
+                setFilteredPlaylist(newTracks);
+                setCurrentTrackIndex(null);
+            };
+
+            const handlePlayPause = () => {
+                if (currentTrackIndex === null || playlist.length === 0) return;
+
+                if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                    audioContextRef.current.resume();
+                }
+
+                if (isPlaying) {
+                    audioRef.current.pause();
+                } else {
+                    audioRef.current.play();
+                }
+                setIsPlaying(!isPlaying);
+            };
+
+            const handleNext = () => {
+                if (playlist.length === 0 || currentTrackIndex === null) return;
+                const nextIndex = (currentTrackIndex + 1) % playlist.length;
+                setCurrentTrackIndex(nextIndex);
+                setIsPlaying(true);
+            };
+
+            const handlePrevious = () => {
+                if (playlist.length === 0 || currentTrackIndex === null) return;
+                const prevIndex = currentTrackIndex === 0 ? playlist.length - 1 : currentTrackIndex - 1;
+                setCurrentTrackIndex(prevIndex);
+                setIsPlaying(true);
+            };
+
+            const handleSeek = (e) => {
+                const newTime = parseFloat(e.target.value);
+                audioRef.current.currentTime = newTime;
+                setCurrentTime(newTime);
+            };
+
+            const handleVolumeChange = (e) => {
+                const newVolume = parseFloat(e.target.value);
+                setVolume(newVolume);
+                audioRef.current.volume = newVolume;
+                setIsMuted(newVolume === 0);
+            };
+
+            const toggleMute = () => {
+                if (isMuted) {
+                    audioRef.current.volume = volume;
+                    setIsMuted(false);
+                } else {
+                    audioRef.current.volume = 0;
+                    setIsMuted(true);
+                }
+            };
+
+            const handleTrackClick = (index) => {
+                const actualIndex = playlist.findIndex(t => t.id === filteredPlaylist[index].id);
+                setCurrentTrackIndex(actualIndex);
+                setIsPlaying(true);
+            };
+
+            const toggleRepeat = () => {
+                setIsRepeat(!isRepeat);
+            };
+
+            const formatTime = (time) => {
+                if (isNaN(time)) return '0:00';
+                const minutes = Math.floor(time / 60);
+                const seconds = Math.floor(time % 60);
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            };
+
+            useEffect(() => {
+                if (currentTrackIndex !== null && playlist.length > 0 && audioRef.current) {
+                    // Initialize AudioContext if not already done
+                    if (!audioContextRef.current) {
+                        try {
+                            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                            analyserRef.current = audioContextRef.current.createAnalyser();
+                            analyserRef.current.fftSize = 256;
+                            const source = audioContextRef.current.createMediaElementSource(audioRef.current);
+                            source.connect(analyserRef.current);
+                            analyserRef.current.connect(audioContextRef.current.destination);
+                            setAudioContextReady(true);
+                            console.log('AudioContext initialized in track load, fftSize:', analyserRef.current.fftSize);
+                        } catch (error) {
+                            console.error('Error initializing AudioContext:', error);
+                        }
+                    }
+
+                    audioRef.current.src = playlist[currentTrackIndex]?.url;
+                    if (isPlaying) {
+                        audioRef.current.play();
+                    }
+                }
+            }, [currentTrackIndex, playlist]);
+
+            const currentTrack = currentTrackIndex !== null ? playlist[currentTrackIndex] : null;
+
+            // Theme color helper - returns appropriate color classes based on selected theme
+            const getThemeColor = (type) => {
+                const colors = {
+                    amber: {
+                        primary: 'amber',
+                        bg: 'stone',
+                        text: 'amber-500',
+                        textDark: 'amber-700',
+                        textLight: 'amber-300',
+                        border: 'amber-900',
+                        button: 'amber-900',
+                        buttonHover: 'amber-800',
+                        gradient: 'from-amber-900 to-amber-400'
+                    },
+                    purple: {
+                        primary: 'purple',
+                        bg: 'black',
+                        text: 'purple-500',
+                        textDark: 'purple-700',
+                        textLight: 'purple-300',
+                        border: 'purple-900',
+                        button: 'purple-900',
+                        buttonHover: 'purple-800',
+                        gradient: 'from-purple-900 to-purple-400'
+                    }
+                };
+                return selectedTheme ? colors[selectedTheme][type] : colors.amber[type];
+            };
+
+            // Show theme selector if no theme is selected
+            if (!selectedTheme) {
+                return <ThemeSelector onSelectTheme={(theme) => setSelectedTheme(theme)} />;
+            }
+
+            return (
+                <div className={`flex flex-col h-screen relative font-sans ${isCompact ? 'bg-transparent' : (selectedTheme === 'purple' ? 'bg-black' : 'bg-stone-950')} ${selectedTheme === 'purple' ? 'text-purple-500 theme-purple' : 'text-amber-500'}`}>
+                    {!isCompact && <DiceBackground />}
+                    {!isCompact && (
+                        <div className={`flex border-b ${selectedTheme === 'purple' ? 'bg-black border-purple-900/50' : 'bg-stone-900 border-amber-900/50'}`} style={{ WebkitAppRegion: 'drag' }}>
+                            <div className="flex-1 px-4 py-2 flex items-center gap-2">
+                                <LucideIcon name="Music" size={16} className={selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'} />
+                                <span className={`text-xs font-bold tracking-wider ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>LIBRERIA DE ZUO</span>
+                            </div>
+                            <div className={selectedTheme === 'purple' ? 'flex bg-black' : 'flex bg-stone-900'} style={{ WebkitAppRegion: 'no-drag' }}>
+                                <button onClick={minimize} className={`h-8 w-12 flex items-center justify-center transition ${selectedTheme === 'purple' ? 'hover:bg-purple-950' : 'hover:bg-stone-800'}`}>
+                                    <img src="./Public/minimizar.png" alt="Minimizar" className="w-4 h-4" />
+                                </button>
+                                <button onClick={maximize} className={`h-8 w-12 flex items-center justify-center transition ${selectedTheme === 'purple' ? 'hover:bg-purple-950' : 'hover:bg-stone-800'}`}>
+                                    <img src="./Public/ampliar.png" alt="Maximizar" className="w-3 h-3" />
+                                </button>
+                                <button onClick={close} className="h-8 w-12 flex items-center justify-center hover:bg-red-900 transition">
+                                    <img src="./Public/cerrar.png" alt="Cerrar" className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Compact Mode: ONLY Player Widget */}
+                    {isCompact ? (
+                        <div className="flex items-center justify-center h-screen w-screen">
+                            <div className="w-[400px]">
+
+                                <div className={`backdrop-blur-2xl rounded-3xl border-4 shadow-2xl ring-1 ${selectedTheme === 'purple' ? 'bg-black/80 border-purple-900/50 ring-purple-500/20' : 'bg-stone-900/80 border-amber-900/50 ring-amber-500/20'}`}>
+
+                                    {/* Visualization Area */}
+                                    <div className={`relative flex items-center justify-center overflow-hidden h-48 rounded-t-3xl border-b-2 ${selectedTheme === 'purple' ? 'bg-black border-purple-900/50' : 'bg-stone-950 border-amber-900/50'}`} style={{ WebkitAppRegion: 'drag' }}>
+                                        <div className={`absolute inset-x-0 bottom-0 whitespace-nowrap text-9xl font-black select-none opacity-20 ${selectedTheme === 'purple' ? 'text-purple-900/20' : 'text-amber-900/20'}`} style={{ fontFamily: 'serif' }}>
+                                            Listen
+                                        </div>
+
+                                        {/* Audio-Reactive Bars */}
+                                        <div className="flex items-end justify-center gap-1 h-24 mb-4 relative z-10">
+                                            {visualizerBars.map((height, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={`w-3 rounded-t-sm transition-all duration-75 ease-out ${selectedTheme === 'purple' ? 'bg-gradient-to-t from-purple-900 to-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]' : 'bg-gradient-to-t from-amber-900 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]'}`}
+                                                    style={{
+                                                        height: `${height}%`,
+                                                        opacity: isPlaying ? 1 : 0.3
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className={`p-4 text-center border-t-2 ${selectedTheme === 'purple' ? 'bg-black border-purple-900' : 'bg-stone-900 border-amber-900'}`}>
+                                        <div className={`font-bold mb-1 truncate ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>
+                                            {currentTrack ? currentTrack.name : 'Sin reproducción'}
+                                        </div>
+                                        <div className={`text-xs truncate ${selectedTheme === 'purple' ? 'text-purple-700' : 'text-amber-700'}`}>
+                                            {currentTrack ? currentTrack.artist : 'Selecciona una canción'}
+                                        </div>
+                                        <div className={`text-xs truncate ${selectedTheme === 'purple' ? 'text-purple-800' : 'text-amber-800'}`}>
+                                            {currentTrack ? currentTrack.album : ''}
+                                        </div>
+                                    </div>
+
+                                    <div className="px-4 pb-3">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max={duration || 0}
+                                            value={currentTime}
+                                            onChange={handleSeek}
+                                            className={`w-full h-2 rounded appearance-none cursor-pointer ${selectedTheme === 'purple' ? 'bg-black progress-bar-purple' : 'bg-stone-800 progress-bar'}`}
+                                            disabled={!currentTrack}
+                                            style={{ backgroundSize: `${(currentTime / duration) * 100}% 100%` }}
+                                        />
+                                        <div className={`flex justify-between text-xs mt-1 ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`}>
+                                            <span>{formatTime(currentTime)}</span>
+                                            <span>{formatTime(duration)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="px-4 pb-4 flex items-center justify-center gap-3 relative" style={{ WebkitAppRegion: 'no-drag' }}>
+                                        <button
+                                            onClick={() => setIsCompact(!isCompact)}
+                                            className={`absolute left-4 p-2 rounded-full transition border-2 ${selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700'}`}
+                                            title={isCompact ? "Expandir" : "Modo Compacto"}
+                                        >
+                                            <img src="./Public/2v.png" alt="Modo Compacto" className="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                            onClick={handlePrevious}
+                                            disabled={!currentTrack}
+                                            className={`p-2 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed border-2 ${selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700'}`}
+                                        >
+                                            <img src="./Public/anterior.png" alt="Anterior" className="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                            onClick={handlePlayPause}
+                                            disabled={!currentTrack}
+                                            className={`p-3 rounded-full transition shadow-lg disabled:opacity-30 disabled:cursor-not-allowed border-2 ${selectedTheme === 'purple' ? 'bg-purple-700 hover:bg-purple-600 border-purple-500' : 'bg-amber-700 hover:bg-amber-600 border-amber-500'}`}
+                                        >
+                                            {isPlaying ? (
+                                                <img src="./Public/pausa.png" alt="Pausa" className="w-6 h-6" />
+                                            ) : (
+                                                <img src="./Public/jugar.png" alt="Play" className="w-6 h-6 ml-0.5" />
+                                            )}
+                                        </button>
+
+                                        <button
+                                            onClick={handleNext}
+                                            disabled={!currentTrack}
+                                            className={`p-2 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed border-2 ${selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700'}`}
+                                        >
+                                            <img src="./Public/proximo.png" alt="Siguiente" className="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                            onClick={toggleRepeat}
+                                            disabled={!currentTrack}
+                                            className={`absolute right-4 p-2 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed border-2 ${isRepeat
+                                                ? (selectedTheme === 'purple' ? 'bg-purple-500 border-purple-400' : 'bg-amber-500 border-amber-400')
+                                                : (selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700')
+                                                }`}
+                                            title="Repetir canción"
+                                        >
+                                            <img src="./Public/repetir.png" alt="Repetir" className={`w-4 h-4 ${isRepeat ? 'brightness-50' : 'brightness-100'}`} />
+                                        </button>
+                                    </div>
+
+                                    <div className={`px-4 pb-4 flex items-center gap-2 border-t-2 pt-4 ${selectedTheme === 'purple' ? 'border-purple-900' : 'border-amber-900'}`}>
+                                        <button onClick={toggleMute} className="text-amber-600 hover:text-amber-400 transition">
+                                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                        </button>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.01"
+                                            value={isMuted ? 0 : volume}
+                                            onChange={handleVolumeChange}
+                                            className={`flex-1 h-2 rounded appearance-none cursor-pointer ${selectedTheme === 'purple' ? 'bg-black volume-bar-purple' : 'bg-stone-800 volume-bar'}`}
+                                            style={{ backgroundSize: `${(isMuted ? 0 : volume) * 100}% 100%` }}
+                                        />
+                                        <span className={`text-xs w-10 text-right ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`}>{Math.round((isMuted ? 0 : volume) * 100)}%</span>
+                                    </div>
+
+                                    <div className={`p-4 border-t-2 ${selectedTheme === 'purple' ? 'border-purple-900' : 'border-amber-900'}`}>
+                                        <input
+                                            ref={folderInputRef}
+                                            type="file"
+                                            webkitdirectory=""
+                                            directory=""
+                                            multiple
+                                            onChange={handleFolderSelect}
+                                            className="hidden"
+                                        />
+                                        {/* Load Folder Button */}
+                                        {!isCompact && (
+                                            <button
+                                                onClick={() => folderInputRef.current.click()}
+                                                className={`w-full py-2 font-bold rounded transition flex items-center justify-center gap-2 border-2 text-sm ${selectedTheme === 'purple' ? 'bg-purple-800 hover:bg-purple-700 text-purple-100 border-purple-600' : 'bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-600'}`}
+                                                style={{ fontFamily: 'serif' }}
+                                            >
+                                                <Folder className="w-4 h-4" />
+                                                Cargar Carpeta
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Normal Mode: Full UI */
+                        <div className="flex-1 overflow-auto p-6 bg-transparent relative z-10">
+                            <div className="max-w-7xl mx-auto">
+                                <div className={`backdrop-blur-xl rounded-lg p-6 mb-6 border shadow-2xl relative overflow-hidden ${selectedTheme === 'purple' ? 'bg-black/40 border-purple-900/50' : 'bg-stone-900/40 border-amber-900/50'}`}>
+                                    <div className={`absolute inset-0 pointer-events-none ${selectedTheme === 'purple' ? 'bg-gradient-to-r from-purple-500/5 to-transparent' : 'bg-gradient-to-r from-amber-500/5 to-transparent'}`}></div>
+                                    <div className="flex items-center justify-between relative z-10">
+                                        <div>
+                                            <h1 className={`text-3xl font-bold tracking-wider drop-shadow-lg ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>
+                                                ⚔ LIBRERIA DE ZUO ⚔
+                                            </h1>
+                                            <p className={`text-sm mt-1 font-medium ${selectedTheme === 'purple' ? 'text-purple-700' : 'text-amber-700'}`}>Gestor de Música</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-sm font-medium ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`}>Carpeta: {folderPath || 'Ninguna'}</p>
+                                            <p className={`text-xs ${selectedTheme === 'purple' ? 'text-purple-700' : 'text-amber-700'}`}>{playlist.length} canciones</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* Player Panel */}
+                                    <div className="lg:col-span-1 flex flex-col gap-6">
+                                        <div className={`rounded-lg shadow-2xl border-4 ${selectedTheme === 'purple' ? 'bg-black border-purple-900' : 'bg-stone-900 border-amber-900'}`}>
+                                            {/* Visualization Area */}
+                                            <div className={`relative flex items-center justify-center overflow-hidden h-48 rounded-t-lg border-b-2 ${selectedTheme === 'purple' ? 'bg-black border-purple-900' : 'bg-stone-950 border-amber-900'}`}>
+                                                <div className={`absolute inset-x-0 bottom-0 whitespace-nowrap text-9xl font-black select-none opacity-20 ${selectedTheme === 'purple' ? 'text-purple-900/20' : 'text-amber-900/20'}`} style={{ fontFamily: 'serif' }}>
+                                                    Listen
+                                                </div>
+                                                {/* Audio-Reactive Bars */}
+                                                <div className="flex items-end justify-center gap-1 h-24 mb-4 relative z-10">
+                                                    {visualizerBars.map((height, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className={`w-3 rounded-t-sm transition-all duration-75 ease-out ${selectedTheme === 'purple' ? 'bg-gradient-to-t from-purple-900 to-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]' : 'bg-gradient-to-t from-amber-900 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]'}`}
+                                                            style={{
+                                                                height: `${height}%`,
+                                                                opacity: isPlaying ? 1 : 0.3
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className={`p-4 text-center border-t-2 ${selectedTheme === 'purple' ? 'bg-black border-purple-900' : 'bg-stone-900 border-amber-900'}`}>
+                                                <div className={`font-bold mb-1 truncate ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>
+                                                    {currentTrack ? currentTrack.name : 'Sin reproducción'}
+                                                </div>
+                                                <div className={`text-xs truncate ${selectedTheme === 'purple' ? 'text-purple-700' : 'text-amber-700'}`}>
+                                                    {currentTrack ? currentTrack.artist : 'Selecciona una canción'}
+                                                </div>
+                                            </div>
+
+                                            <div className="px-4 pt-4">
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max={duration || 0}
+                                                    value={currentTime}
+                                                    onChange={handleSeek}
+                                                    className={`w-full h-2 rounded appearance-none cursor-pointer ${selectedTheme === 'purple' ? 'bg-black progress-bar-purple' : 'bg-stone-800 progress-bar'}`}
+                                                    style={{ backgroundSize: `${duration ? (currentTime / duration) * 100 : 0}% 100%` }}
+                                                />
+                                                <div className={`flex justify-between text-xs mt-1 ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`}>
+                                                    <span>{formatTime(currentTime)}</span>
+                                                    <span>{formatTime(duration)}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="px-4 pb-4 flex items-center justify-center gap-3 relative">
+                                                <button
+                                                    onClick={() => setIsCompact(!isCompact)}
+                                                    className={`absolute left-4 p-2 rounded-full transition border-2 ${selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700'}`}
+                                                    title={isCompact ? "Expandir" : "Modo Compacto"}
+                                                >
+                                                    <img src="./Public/2v.png" alt="Modo Compacto" className="w-4 h-4" />
+                                                </button>
+
+                                                <button
+                                                    onClick={handlePrevious}
+                                                    disabled={!currentTrack}
+                                                    className={`p-2 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed border-2 ${selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700'}`}
+                                                >
+                                                    <img src="./Public/anterior.png" alt="Anterior" className="w-4 h-4" />
+                                                </button>
+
+                                                <button
+                                                    onClick={handlePlayPause}
+                                                    disabled={!currentTrack}
+                                                    className={`p-3 rounded-full transition shadow-lg disabled:opacity-30 disabled:cursor-not-allowed border-2 ${selectedTheme === 'purple' ? 'bg-purple-700 hover:bg-purple-600 border-purple-500' : 'bg-amber-700 hover:bg-amber-600 border-amber-500'}`}
+                                                >
+                                                    {isPlaying ? (
+                                                        <img src="./Public/pausa.png" alt="Pausa" className="w-6 h-6" />
+                                                    ) : (
+                                                        <img src="./Public/jugar.png" alt="Play" className="w-6 h-6 ml-0.5" />
+                                                    )}
+                                                </button>
+
+                                                <button
+                                                    onClick={handleNext}
+                                                    disabled={!currentTrack}
+                                                    className={`p-2 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed border-2 ${selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700'}`}
+                                                >
+                                                    <img src="./Public/proximo.png" alt="Siguiente" className="w-4 h-4" />
+                                                </button>
+
+                                                <button
+                                                    onClick={toggleRepeat}
+                                                    disabled={!currentTrack}
+                                                    className={`absolute right-4 p-2 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed border-2 ${isRepeat
+                                                        ? (selectedTheme === 'purple' ? 'bg-purple-500 border-purple-400' : 'bg-amber-500 border-amber-400')
+                                                        : (selectedTheme === 'purple' ? 'bg-purple-900 hover:bg-purple-800 border-purple-700' : 'bg-amber-900 hover:bg-amber-800 border-amber-700')
+                                                        }`}
+                                                    title="Repetir canción"
+                                                >
+                                                    <img src="./Public/repetir.png" alt="Repetir" className={`w-4 h-4 ${isRepeat ? 'brightness-50' : 'brightness-100'}`} />
+                                                </button>
+                                            </div>
+
+                                            <div className={`px-4 pb-4 flex items-center gap-2 border-t-2 pt-4 ${selectedTheme === 'purple' ? 'border-purple-900' : 'border-amber-900'}`}>
+                                                <button onClick={toggleMute} className={`transition ${selectedTheme === 'purple' ? 'text-purple-600 hover:text-purple-400' : 'text-amber-600 hover:text-amber-400'}`}>
+                                                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                                </button>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.01"
+                                                    value={isMuted ? 0 : volume}
+                                                    onChange={handleVolumeChange}
+                                                    className={`flex-1 h-2 rounded appearance-none cursor-pointer ${selectedTheme === 'purple' ? 'bg-purple-950 volume-bar-purple' : 'bg-stone-800 volume-bar'}`}
+                                                    style={{ backgroundSize: `${(isMuted ? 0 : volume) * 100}% 100%` }}
+                                                />
+                                                <span className={`text-xs w-10 text-right ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`}>{Math.round((isMuted ? 0 : volume) * 100)}%</span>
+                                            </div>
+
+                                            <div className={`p-4 border-t-2 ${selectedTheme === 'purple' ? 'border-purple-900' : 'border-amber-900'}`}>
+                                                <input
+                                                    ref={folderInputRef}
+                                                    type="file"
+                                                    webkitdirectory=""
+                                                    directory=""
+                                                    multiple
+                                                    onChange={handleFolderSelect}
+                                                    className="hidden"
+                                                />
+                                                <button
+                                                    onClick={() => folderInputRef.current.click()}
+                                                    className={`w-full py-2 font-bold rounded transition flex items-center justify-center gap-2 border-2 text-sm ${selectedTheme === 'purple' ? 'bg-purple-800 hover:bg-purple-700 text-purple-100 border-purple-600' : 'bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-600'}`}
+                                                    style={{ fontFamily: 'serif' }}
+                                                >
+                                                    <Folder className="w-4 h-4" />
+                                                    Cargar Carpeta
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Playlist Panel */}
+                                    <div className="lg:col-span-2">
+                                        <div className={`backdrop-blur-xl rounded-lg shadow-2xl border overflow-hidden relative ${selectedTheme === 'purple' ? 'bg-black/40 border-purple-900/50' : 'bg-stone-900/40 border-amber-900/50'}`}>
+                                            <div className={`absolute inset-0 pointer-events-none ${selectedTheme === 'purple' ? 'bg-gradient-to-b from-purple-900/5 to-transparent' : 'bg-gradient-to-b from-amber-900/5 to-transparent'}`}></div>
+
+                                            <div className={`p-4 border-b ${selectedTheme === 'purple' ? 'border-purple-900/50 bg-black/30' : 'border-amber-900/50 bg-stone-900/30'}`}>
+                                                <div className="relative">
+                                                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`} />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Buscar por título, artista o álbum..."
+                                                        value={searchTerm}
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                        className={`w-full pl-10 pr-4 py-2 border rounded transition-colors ${selectedTheme === 'purple' ? 'bg-purple-950/50 border-purple-900/50 text-purple-300 placeholder-purple-700/70 focus:outline-none focus:border-purple-600/80' : 'bg-stone-800/50 border-amber-900/50 text-amber-300 placeholder-amber-700/70 focus:outline-none focus:border-amber-600/80'}`}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="overflow-y-auto max-h-[calc(100vh-500px)]">
+                                                {playlist.length === 0 ? (
+                                                    <div className="text-center py-20">
+                                                        <Music className={`w-16 h-16 mx-auto mb-4 ${selectedTheme === 'purple' ? 'text-purple-800' : 'text-amber-800'}`} />
+                                                        <p className={`text-lg font-bold ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`} style={{ fontFamily: 'serif' }}>
+                                                            No hay canciones cargadas
+                                                        </p>
+                                                        <p className={`text-sm mt-2 ${selectedTheme === 'purple' ? 'text-purple-800' : 'text-amber-800'}`}>
+                                                            Usa el botón "Cargar Carpeta" para comenzar
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <table className="w-full relative z-10">
+                                                        <thead className={`backdrop-blur-md border-b sticky top-0 z-20 ${selectedTheme === 'purple' ? 'bg-purple-950/60 border-purple-900/50' : 'bg-amber-950/60 border-amber-900/50'}`}>
+                                                            <tr>
+                                                                <th className={`text-left p-3 text-sm font-bold w-1/3 ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>Título</th>
+                                                                <th className={`text-left p-3 text-sm font-bold w-1/4 ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>Artista</th>
+                                                                <th className={`text-left p-3 text-sm font-bold w-1/4 ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>Álbum</th>
+                                                                <th className={`text-right p-3 text-sm font-bold ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`} style={{ fontFamily: 'serif' }}>
+                                                                    <Clock className="w-4 h-4 inline mr-1" /> Duración
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {filteredPlaylist.map((track, index) => {
+                                                                const actualIndex = playlist.findIndex(t => t.id === track.id);
+                                                                const isCurrentTrack = actualIndex === currentTrackIndex;
+                                                                return (
+                                                                    <tr
+                                                                        key={track.id}
+                                                                        onClick={() => handleTrackClick(index)}
+                                                                        className={`border-b cursor-pointer transition-all ${playlist[currentTrackIndex]?.id === track.id
+                                                                            ? (selectedTheme === 'purple' ? 'border-purple-900/30 bg-purple-600/20 hover:bg-purple-600/30 backdrop-contrast-125' : 'border-amber-900/30 bg-amber-600/20 hover:bg-amber-600/30 backdrop-contrast-125')
+                                                                            : (selectedTheme === 'purple' ? 'border-purple-900/30 hover:bg-purple-600/20 hover:backdrop-contrast-125' : 'border-amber-900/30 hover:bg-amber-600/20 hover:backdrop-contrast-125')
+                                                                            }`}
+                                                                    >
+                                                                        <td className={`p-3 text-sm font-medium ${selectedTheme === 'purple' ? 'text-purple-400' : 'text-amber-400'}`}>
+                                                                            {playlist[currentTrackIndex]?.id === track.id ? (
+                                                                                <span className="flex items-center gap-2">
+                                                                                    <LucideIcon name={isPlaying ? "Volume2" : "Music"} size={14} className={selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'} />
+                                                                                    {track.name}
+                                                                                </span>
+                                                                            ) : (
+                                                                                track.name
+                                                                            )}
+                                                                        </td>
+                                                                        <td className={`p-3 text-sm ${selectedTheme === 'purple' ? 'text-purple-400' : 'text-amber-400'}`}>{track.artist}</td>
+                                                                        <td className={`p-3 text-sm ${selectedTheme === 'purple' ? 'text-purple-500' : 'text-amber-500'}`}>{track.album}</td>
+                                                                        <td className={`p-3 text-sm text-right ${selectedTheme === 'purple' ? 'text-purple-600' : 'text-amber-600'}`}>{formatTime(track.duration)}</td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                )}
+                                            </div>
+
+                                            {playlist.length > 0 && (
+                                                <div className={`p-3 border-t-2 flex justify-between text-xs ${selectedTheme === 'purple' ? 'bg-purple-950 border-purple-900 text-purple-600' : 'bg-amber-950 border-amber-900 text-amber-600'}`}>
+                                                    <span>Total: {filteredPlaylist.length} canciones</span>
+                                                    <span>Duración total: {formatTime(filteredPlaylist.reduce((acc, t) => acc + t.duration, 0))}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Single Audio Element - Shared Between Modes */}
+                    <audio ref={audioRef} style={{ display: 'none' }} />
+                </div >
+            );
+        }
+
+        ReactDOM.render(<DnDMusicManager />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
